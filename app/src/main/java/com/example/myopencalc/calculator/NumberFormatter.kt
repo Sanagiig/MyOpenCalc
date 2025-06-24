@@ -47,8 +47,85 @@ object NumberFormatter {
         return result
     }
 
+    private fun addSeparators(
+        numbersList: List<String>,
+        decimalSeparatorSymbol: String,
+        groupingSeparatorSymbol: String,
+        numberingSystem: NumberingSystem
+    ): List<String> {
+        return numbersList.map {
+            if (it.contains(decimalSeparatorSymbol)) {
+                if (it.first() == decimalSeparatorSymbol[0]) {
+                    //this means the floating point number doesn't have integers
+                    it
+                } else {
+                    val integersPart = it.substring(0, it.indexOf(decimalSeparatorSymbol))
+                    val fractions = it.substring(it.indexOf(decimalSeparatorSymbol) + 1)
+                    formatIntegers(
+                        integersPart,
+                        groupingSeparatorSymbol,
+                        numberingSystem == NumberingSystem.INTERNATIONAL
+                    ) + decimalSeparatorSymbol + fractions
+                }
+            } else {
+                formatIntegers(it, groupingSeparatorSymbol, numberingSystem == NumberingSystem.INTERNATIONAL)
+            }
+        }
+    }
+
     private fun removeSeparators(text: String, groupingSeparatorSymbol: String): String {
         return text.replace(groupingSeparatorSymbol, "")
+    }
+
+    private fun formatIntegers(
+        integers: String,
+        groupingSeparatorSymbol: String,
+        isInternational: Boolean
+    ): String {
+        // sample input  : 00110
+        return if (isInternational) {
+            integers.reversed()                         // reversed      : 01100
+                .chunked(3)                             // chunked       : [011, 00]
+                .joinToString(groupingSeparatorSymbol)  // joinedToString: 011,00
+                .reversed()                             // reversed      : 00,110
+        } else {
+            return formatIndianNumberingSystem(integers)
+        }
+    }
+
+    private fun formatIndianNumberingSystem(numberStr: String): String {
+        val isNegative = numberStr.startsWith("-")
+        val numberWithoutSign = if (isNegative) numberStr.substring(1) else numberStr
+
+        val numberParts = numberWithoutSign.split(".")
+        val integerPart = numberParts[0]
+        val decimalPart = if (numberParts.size > 1) numberParts[1] else ""
+
+        val length = integerPart.length
+        val result = StringBuilder()
+        var count = 0
+
+        for (i in length - 1 downTo 0) {
+            result.append(integerPart[i])
+            count++
+
+            when {
+                /** First comma comes after 3 digits **/
+                count == 3 && i != 0 -> {
+                    result.append(',')
+                    count = 0
+                }
+                /** Subsequent commas every 2 digits **/
+                count == 2 && i != 0 && length - i > 3 -> {
+                    result.append(',')
+                    count = 0
+                }
+            }
+        }
+
+        val formattedIntegerPart = result.reverse().toString()
+        val formattedNumber = if (decimalPart.isNotEmpty()) "$formattedIntegerPart.$decimalPart" else formattedIntegerPart
+        return if (isNegative) "-$formattedNumber" else formattedNumber
     }
 }
 

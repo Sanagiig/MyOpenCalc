@@ -1,7 +1,6 @@
 package com.example.myopencalc.activities
 
-import android.icu.number.NumberFormatter
-import android.icu.text.NumberingSystem
+
 import android.os.Build
 import android.os.Bundle
 import android.view.HapticFeedbackConstants
@@ -14,6 +13,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.myopencalc.R
+import com.example.myopencalc.calculator.NumberFormatter
+import com.example.myopencalc.calculator.NumberingSystem
 import com.example.myopencalc.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -45,6 +46,8 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
     }
 
     fun openAppMenu(view: View) {
@@ -107,19 +110,51 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if(!binding.input?.isCursorVisible!!){
+        if (!binding.input?.isCursorVisible!!) {
             binding.input?.isCursorVisible = true
         }
 
-        lifecycleScope.launch(Dispatchers.Default){
-            withContext(Dispatchers.Main){
+        lifecycleScope.launch(Dispatchers.Default) {
+            withContext(Dispatchers.Main) {
                 keyVibration(view)
             }
 
             val formerValue = binding.input!!.text.toString()
             val cursorPosition = binding.input!!.selectionStart
             val leftValue = formerValue.substring(0, cursorPosition)
-            val leftValueFormatted = NumberFormatter.format(leftValue,decimalSeparatorSymbol,groupingSeparatorSymbol,number)
+            val leftValueFormatted = NumberFormatter.format(
+                leftValue,
+                decimalSeparatorSymbol,
+                groupingSeparatorSymbol,
+                numberingSystem
+            )
+            val rightValue = formerValue.subSequence(cursorPosition, formerValue.length).toString()
+
+            val newValue = leftValue + value + rightValue
+
+            val newValueFormatted =
+                NumberFormatter.format(
+                    newValue,
+                    decimalSeparatorSymbol,
+                    groupingSeparatorSymbol,
+                    numberingSystem
+                )
+
+            withContext(Dispatchers.Main) {
+                // Update Display
+                binding.input!!.setText(newValueFormatted)
+
+                // Set cursor position
+                if (isValueInt) {
+                    val cursorOffset = newValueFormatted.length - newValue.length
+                    binding.input!!.setSelection(cursorPosition + value.length + cursorOffset)
+                } else {
+                    val desiredCursorPosition = leftValueFormatted.length + value.length
+                    // Limit the cursor position to the length of the input
+                    val safeCursorPosition = desiredCursorPosition.coerceAtMost(binding.input!!.text.length)
+                    binding.input!!.setSelection(safeCursorPosition)
+                }
+            }
         }
     }
 }
