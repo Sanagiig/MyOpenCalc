@@ -41,7 +41,7 @@
         tools:layout_editor_absoluteX="0dp">
 
         <EditText
-            android:id="@+id/input"
+            android:id="@+id/calc_input"
             style="@style/RobotoFontCondensedMedium"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
@@ -51,6 +51,7 @@
             android:maxLength="100000"
             android:paddingHorizontal="10dp"
             android:singleLine="true"
+            android:text=""
             android:textColor="?attr/text_color"
             android:textSize="55sp"
             tools:ignore="RtlCompat"

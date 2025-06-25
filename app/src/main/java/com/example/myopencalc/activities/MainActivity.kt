@@ -1,8 +1,8 @@
 package com.example.myopencalc.activities
 
-
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.Button
@@ -23,8 +23,12 @@ import java.text.DecimalFormatSymbols
 import java.text.NumberFormat
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        const val TAG = "MainActivity"
+    }
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var root: View
     private var popupMenu: PopupMenu? = null
 
     private var isEqualLastAction = false
@@ -48,6 +52,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
+        root = binding.root
+        setContentView(root)
     }
 
     fun openAppMenu(view: View) {
@@ -104,23 +110,24 @@ class MainActivity : AppCompatActivity() {
 
         if (isEqualLastAction) {
             if (isValueInt || value == decimalSeparatorSymbol) {
-                binding.input?.setText("")
+                binding.calcInput?.setText("")
             } else {
-                binding.input?.setSelection(binding.input?.text?.length ?: 0)
+                binding.calcInput?.setSelection(binding.calcInput?.text?.length ?: 0)
             }
         }
 
-        if (!binding.input?.isCursorVisible!!) {
-            binding.input?.isCursorVisible = true
+        if (!binding.calcInput?.isCursorVisible!!) {
+            binding.calcInput?.isCursorVisible = true
         }
 
         lifecycleScope.launch(Dispatchers.Default) {
             withContext(Dispatchers.Main) {
                 keyVibration(view)
             }
+            Log.d(TAG, "updateDisplay: ${binding.calcInput!!.text}")
 
-            val formerValue = binding.input!!.text.toString()
-            val cursorPosition = binding.input!!.selectionStart
+            val formerValue = binding.calcInput!!.text.toString()
+            val cursorPosition = binding.calcInput!!.selectionStart
             val leftValue = formerValue.substring(0, cursorPosition)
             val leftValueFormatted = NumberFormatter.format(
                 leftValue,
@@ -141,19 +148,22 @@ class MainActivity : AppCompatActivity() {
                 )
 
             withContext(Dispatchers.Main) {
-                // Update Display
-                binding.input!!.setText(newValueFormatted)
 
-                // Set cursor position
+                // Update Display
+                binding.calcInput!!.setText(newValueFormatted)
+                Log.d(TAG, "updateDisplay: $newValueFormatted")
+//                 Set cursor position
                 if (isValueInt) {
                     val cursorOffset = newValueFormatted.length - newValue.length
-                    binding.input!!.setSelection(cursorPosition + value.length + cursorOffset)
+                    binding.calcInput!!.setSelection(cursorPosition + value.length + cursorOffset)
                 } else {
                     val desiredCursorPosition = leftValueFormatted.length + value.length
-                    // Limit the cursor position to the length of the input
-                    val safeCursorPosition = desiredCursorPosition.coerceAtMost(binding.input!!.text.length)
-                    binding.input!!.setSelection(safeCursorPosition)
+                    // Limit the cursor position to the length of the calcInput
+                    val safeCursorPosition =
+                        desiredCursorPosition.coerceAtMost(binding.calcInput!!.text.length)
+                    binding.calcInput!!.setSelection(safeCursorPosition)
                 }
+                binding.calcInput!!.setSelection(1)
             }
         }
     }
