@@ -1,5 +1,6 @@
 package com.example.myopencalc.activities
 
+import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -67,7 +68,10 @@ class MainActivity : AppCompatActivity() {
 
     fun squareButton(view: View) {}
     fun piButton(view: View) {}
-    fun exponentButton(view: View) {}
+    fun exponentButton(view: View) {
+        addSymbol(view, "^")
+    }
+
     fun factorialButton(view: View) {}
     fun scientistModeSwitchButton(view: View) {}
     fun degreeButton(view: View) {}
@@ -84,22 +88,81 @@ class MainActivity : AppCompatActivity() {
     fun rightParenthesisButton(view: View) {}
     fun parenthesesButton(view: View) {}
     fun percent(view: View) {}
-    fun divideButton(view: View) {}
+    fun divideButton(view: View) {
+        addSymbol(view, "÷")
+    }
+
     fun keyDigitPadMappingToDisplay(view: View) {
         updateDisplay(view, (view as Button).text.toString())
     }
 
-    fun multiplyButton(view: View) {}
-    fun subtractButton(view: View) {}
+    fun multiplyButton(view: View) {
+        addSymbol(view, "×")
+    }
+
+    fun subtractButton(view: View) {
+        addSymbol(view, "-")
+    }
+
     fun pointButton(view: View) {}
     fun backspaceButton(view: View) {}
     fun equalsButton(view: View) {}
-    fun addButton(view: View) {}
+    fun addButton(view: View) {
+        addSymbol(view, "+")
+    }
 
     private fun keyVibration(view: View) {
         if (MyPreferences(this).vibrationMode) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            }
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun addSymbol(view: View, currentSymbol: String) {
+        val text = binding.calcInput?.text.toString()
+        if (text.isEmpty()) {
+            if (currentSymbol == "-") {
+                updateDisplay(view, currentSymbol);
+            } else {
+                keyVibration(view)
+            }
+        } else {
+            val curPosition = binding.calcInput?.selectionStart ?: 0
+            val nextChar = if (curPosition < text.length) text[curPosition].toString() else "0"
+            val preChar = if (curPosition > 0) text[curPosition - 1].toString() else "0"
+            val preSymbol = if (curPosition > 1) text[curPosition - 2].toString() else "0"
+
+            if (currentSymbol != preChar // Ignore multiple presses of the same button
+                && currentSymbol != nextChar
+                && preSymbol != "√" // No symbol can be added on an empty square root
+                && (preChar != "(" || currentSymbol == "-")  // Ensure that we are not at the beginning of a parenthesis
+                && (preSymbol !in "+\\-÷×" || preChar !in "+\\-÷×") && preChar != decimalSeparatorSymbol
+            ) {
+                if (preChar.matches("[+\\-÷×^]".toRegex())) {
+                    keyVibration(view)
+                    val leftString =
+                        binding.calcInput?.text?.subSequence(0, curPosition - 1).toString()
+                    val rightString =
+                        binding.calcInput?.text?.subSequence(curPosition, text.length).toString()
+
+                    if (currentSymbol == "-") {
+                        if (preChar in "+-") {
+                            binding.calcInput?.setText(leftString + currentSymbol + rightString)
+                            binding.calcInput?.setSelection(curPosition)
+                        } else {
+                            binding.calcInput?.setText(leftString + preChar + currentSymbol + rightString)
+                            binding.calcInput?.setSelection(curPosition + 1)
+                        }
+                    } else if (curPosition > 1 && binding.calcInput?.text?.get(curPosition - 2) != '(') {
+                        binding.calcInput?.setText(leftString + currentSymbol + rightString)
+                        binding.calcInput?.setSelection(curPosition)
+                    } else if (currentSymbol == "+") {
+                        binding.calcInput?.setText(leftString + rightString)
+                        binding.calcInput?.setSelection(curPosition - 1)
+                    }
+                }
             }
         }
     }
