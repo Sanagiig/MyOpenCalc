@@ -3,6 +3,8 @@ package com.example.myopencalc.activities
 import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.View
@@ -55,6 +57,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         root = binding.root
         setContentView(root)
+        init();
     }
 
     fun openAppMenu(view: View) {
@@ -152,6 +155,7 @@ class MainActivity : AppCompatActivity() {
                             binding.calcInput?.setText(leftString + currentSymbol + rightString)
                             binding.calcInput?.setSelection(curPosition)
                         } else {
+                            // ???
                             binding.calcInput?.setText(leftString + preChar + currentSymbol + rightString)
                             binding.calcInput?.setSelection(curPosition + 1)
                         }
@@ -162,7 +166,27 @@ class MainActivity : AppCompatActivity() {
                         binding.calcInput?.setText(leftString + rightString)
                         binding.calcInput?.setSelection(curPosition - 1)
                     }
-                }
+
+                } // If next character is a symbol, replace it
+                else if (nextChar.matches("[+\\-÷×^%!]".toRegex())
+                    && currentSymbol != "%"
+                ) { // Make sure that percent symbol doesn't replace succeeding symbols
+                    keyVibration(view)
+
+                    val leftString =
+                        binding.calcInput?.text?.subSequence(0, curPosition).toString()
+                    val rightString =
+                        binding.calcInput?.text?.subSequence(curPosition + 1, text.length)
+                            .toString()
+
+                    if (curPosition > 0 && preChar != "(") {
+                        binding.calcInput?.setText(leftString + currentSymbol + rightString)
+                        binding.calcInput?.setSelection(curPosition + 1)
+                    } else if (currentSymbol == "+") binding.calcInput?.setText(leftString + rightString)
+                }// Otherwise just update the display
+                else if (curPosition > 0 || nextChar != "0" && currentSymbol == "-") {
+                    updateDisplay(view, currentSymbol)
+                } else keyVibration(view)
             }
         }
     }
@@ -226,8 +250,34 @@ class MainActivity : AppCompatActivity() {
                         desiredCursorPosition.coerceAtMost(binding.calcInput!!.text.length)
                     binding.calcInput!!.setSelection(safeCursorPosition)
                 }
-                binding.calcInput!!.setSelection(1)
             }
         }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun updateResultDisplay() {
+
+    }
+
+    fun init() {
+        binding.calcInput?.addTextChangedListener(object : TextWatcher {
+            var preLen: Int = 0
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                preLen = p0?.length ?: 0
+            }
+
+            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                updateResultDisplay()
+                textSizeAdjuster.adjustTextSize(
+                    binding.input,
+                    TextSizeAdjuster.AdjustableTextType.Input
+                )
+            }
+
+            override fun afterTextChanged(p0: Editable?) {
+                TODO("Not yet implemented")
+            }
+
+        })
     }
 }
