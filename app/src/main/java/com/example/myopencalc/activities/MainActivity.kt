@@ -167,6 +167,7 @@ class MainActivity : AppCompatActivity() {
                         binding.calcInput?.setSelection(curPosition - 1)
                     }
 
+
                 } // If next character is a symbol, replace it
                 else if (nextChar.matches("[+\\-÷×^%!]".toRegex())
                     && currentSymbol != "%"
@@ -175,6 +176,7 @@ class MainActivity : AppCompatActivity() {
 
                     val leftString =
                         binding.calcInput?.text?.subSequence(0, curPosition).toString()
+
                     val rightString =
                         binding.calcInput?.text?.subSequence(curPosition + 1, text.length)
                             .toString()
@@ -183,11 +185,13 @@ class MainActivity : AppCompatActivity() {
                         binding.calcInput?.setText(leftString + currentSymbol + rightString)
                         binding.calcInput?.setSelection(curPosition + 1)
                     } else if (currentSymbol == "+") binding.calcInput?.setText(leftString + rightString)
+
                 }// Otherwise just update the display
                 else if (curPosition > 0 || nextChar != "0" && currentSymbol == "-") {
                     updateDisplay(view, currentSymbol)
                 } else keyVibration(view)
             }
+
         }
     }
 
@@ -215,7 +219,7 @@ class MainActivity : AppCompatActivity() {
 
             val formerValue = binding.calcInput!!.text.toString()
             val cursorPosition = binding.calcInput!!.selectionStart
-            val leftValue = formerValue.substring(0, cursorPosition)
+            val leftValue = formerValue.subSequence(0, cursorPosition).toString()
             val leftValueFormatted = NumberFormatter.format(
                 leftValue,
                 decimalSeparatorSymbol,
@@ -239,7 +243,7 @@ class MainActivity : AppCompatActivity() {
                 // Update Display
                 binding.calcInput!!.setText(newValueFormatted)
                 Log.d(TAG, "updateDisplay: $newValueFormatted")
-//                 Set cursor position
+                // Set cursor position
                 if (isValueInt) {
                     val cursorOffset = newValueFormatted.length - newValue.length
                     binding.calcInput!!.setSelection(cursorPosition + value.length + cursorOffset)
