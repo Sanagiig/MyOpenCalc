@@ -1,4 +1,4 @@
-package com.example.myopencalc.calculator
+package com.example.myopencalc.calculator.parser
 
 object NumberFormatter {
     fun format(

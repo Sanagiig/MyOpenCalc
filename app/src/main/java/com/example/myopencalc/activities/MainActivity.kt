@@ -12,18 +12,26 @@ import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.myopencalc.MyPreferences
 import com.example.myopencalc.R
-import com.example.myopencalc.calculator.NumberFormatter
-import com.example.myopencalc.calculator.NumberingSystem
+import com.example.myopencalc.TextSizeAdjuster
+import com.example.myopencalc.calculator.parser.Expression
+import com.example.myopencalc.calculator.parser.NumberFormatter
+import com.example.myopencalc.calculator.parser.NumberingSystem
 import com.example.myopencalc.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.math.BigDecimal
 import java.text.DecimalFormatSymbols
-import java.text.NumberFormat
+import com.example.myopencalc.calculator.parser.*
+import com.example.myopencalc.history.History
+import com.example.myopencalc.history.HistoryAdapter
+import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -35,12 +43,19 @@ class MainActivity : AppCompatActivity() {
     private var popupMenu: PopupMenu? = null
 
     private var isEqualLastAction = false
+    private var errorStatusOld = false
+    private var isStillTheSameCalculation_autoSaveCalculationWithoutEqualOption = false
+    private var lastHistoryElementId = ""
 
     private val decimalSeparatorSymbol =
         DecimalFormatSymbols.getInstance().decimalSeparator.toString()
 
     private val groupingSeparatorSymbol =
         DecimalFormatSymbols.getInstance().groupingSeparator.toString()
+
+    private lateinit var historyAdapter: HistoryAdapter
+
+    private var calculationResult = BigDecimal.ZERO
 
     private var numberingSystem = NumberingSystem.INTERNATIONAL
 
@@ -86,7 +101,13 @@ class MainActivity : AppCompatActivity() {
     fun naturalLogarithmButton(view: View) {}
     fun logarithmButton(view: View) {}
     fun log2Button(view: View) {}
-    fun clearButton(view: View) {}
+    fun clearButton(view: View) {
+        keyVibration(view)
+        binding.calcInput?.setText("")
+        binding.resultDisplay?.text = ""
+        isStillTheSameCalculation_autoSaveCalculationWithoutEqualOption = false
+    }
+
     fun leftParenthesisButton(view: View) {}
     fun rightParenthesisButton(view: View) {}
     fun parenthesesButton(view: View) {}
@@ -107,9 +128,192 @@ class MainActivity : AppCompatActivity() {
         addSymbol(view, "-")
     }
 
-    fun pointButton(view: View) {}
+    fun pointButton(view: View) {
+        val cursorPosition = binding.calcInput?.selectionStart ?: 0
+        var currentNumber = ""
+        if (binding.calcInput?.text.toString().isNotEmpty()) {
+            var startPosition = 0
+            var endPosition = 0
+            if (cursorPosition > 0) {
+                startPosition = cursorPosition
+                while (startPosition > 0 && (binding.calcInput!!.text!![startPosition - 1].isDigit()
+                            || binding.calcInput!!.text[startPosition - 1].toString() == decimalSeparatorSymbol
+                            || binding.calcInput!!.text[startPosition - 1].toString() == groupingSeparatorSymbol)
+                ) {
+                    startPosition -= 1
+                }
+            }
+
+            if (cursorPosition == binding.calcInput!!.text.length) {
+                endPosition = binding.calcInput!!.text.length
+            }
+
+            if (cursorPosition < binding.calcInput!!.text.length) {
+                endPosition = if (cursorPosition != 0) cursorPosition else 0
+                while (endPosition < binding.calcInput!!.text.length
+                    && (binding.calcInput!!.text[endPosition].isDigit()
+                            || binding.calcInput!!.text[endPosition].toString() == decimalSeparatorSymbol
+                            || binding.calcInput!!.text[endPosition].toString() == groupingSeparatorSymbol)
+                ) {
+                    endPosition += 1
+                }
+            }
+
+            currentNumber = binding.calcInput!!.text.substring(startPosition, endPosition)
+        }
+
+        if (decimalSeparatorSymbol !in currentNumber) {
+            updateDisplay(view, decimalSeparatorSymbol)
+        }
+    }
+
     fun backspaceButton(view: View) {}
-    fun equalsButton(view: View) {}
+
+    @SuppressLint("SetTextI18n")
+    fun equalsButton(view: View) {
+        lifecycleScope.launch(Dispatchers.Default) {
+            keyVibration(view)
+
+            val calculation = binding.calcInput?.text.toString()
+
+            Expression().addParenthesis(calculation)
+
+            if (calculation != "") {
+                val resultString = calculationResult.toString()
+                var formattedResult = NumberFormatter.format(
+                    resultString.replace(".", decimalSeparatorSymbol),
+                    decimalSeparatorSymbol,
+                    groupingSeparatorSymbol,
+                    numberingSystem
+                )
+
+                // If result is a number and it is finite
+                if (!(division_by_0 || domain_error || syntax_error || is_infinity || require_real_number)) {
+
+                    // Remove zeros at the end of the results (after point)
+                    val resultSplited = resultString.split('.')
+                    if (resultSplited.size > 1) {
+                        val resultPartAfterDecimalSeparator = resultSplited[1].trimEnd('0')
+                        var resultWithoutZeros = resultSplited[0]
+
+                        if (resultPartAfterDecimalSeparator != "") {
+                            resultWithoutZeros =
+                                resultSplited[0] + "." + resultPartAfterDecimalSeparator
+                        }
+
+                        formattedResult = NumberFormatter.format(
+                            resultWithoutZeros.replace(".", decimalSeparatorSymbol),
+                            decimalSeparatorSymbol,
+                            groupingSeparatorSymbol,
+                            numberingSystem
+                        )
+                    }
+
+                    // Hide the cursor before updating binding.input to avoid weird cursor movement
+                    withContext(Dispatchers.Main) {
+                        binding.calcInput!!.isCursorVisible = false
+                    }
+
+                    // Display result
+                    withContext(Dispatchers.Main) {
+                        binding.calcInput!!.setText(formattedResult)
+                    }
+
+                    // Set cursor
+                    withContext(Dispatchers.Main) {
+                        binding.calcInput!!.setSelection(binding.calcInput!!.length())
+
+                        binding.calcInput!!.isCursorVisible = false
+
+                        binding.resultDisplay!!.text = ""
+                    }
+
+                    if (calculation != formattedResult) {
+                        val history = MyPreferences(this@MainActivity).getHistory()
+
+                        isStillTheSameCalculation_autoSaveCalculationWithoutEqualOption = false
+
+                        if (history.isEmpty() || history[history.size - 1].calculation != calculation) {
+                            // Store time
+                            val currentTime = System.currentTimeMillis().toString()
+
+                            // Save to history
+                            val historyElementId = UUID.randomUUID().toString()
+                            history.add(
+                                History(
+                                    calculation = calculation,
+                                    result = formattedResult,
+                                    time = currentTime,
+                                    id = historyElementId // Generate a random id
+                                )
+                            )
+
+                            MyPreferences(this@MainActivity).saveHistory(history)
+
+                            lastHistoryElementId = historyElementId
+                            isStillTheSameCalculation_autoSaveCalculationWithoutEqualOption = true
+
+                            MyPreferences(this@MainActivity).saveHistory(history)
+
+                            withContext(Dispatchers.Main) {
+                                historyAdapter.appendOneHistoryElement(
+                                    History(
+                                        calculation = calculation,
+                                        result = formattedResult,
+                                        time = currentTime,
+                                        id = UUID.randomUUID().toString() // Generate a random id
+                                    )
+                                )
+
+                                val historySize =
+                                    MyPreferences(this@MainActivity).historySize!!.toInt()
+                                while (historySize != -1 && historyAdapter.itemCount >= historySize && historyAdapter.itemCount > 0) {
+                                    historyAdapter.removeFirstHistoryElement()
+                                }
+                                checkEmptyHistoryForNoHistoryLabel()
+                                // Scroll to the bottom of the recycle view
+                                binding.historyRecylcleView!!.scrollToPosition(historyAdapter.itemCount - 1)
+                            }
+                        }
+                    }
+
+                    isEqualLastAction = true
+                } else {
+                    withContext(Dispatchers.Main) {
+                        if (syntax_error) {
+                            setErrorColor(true)
+                            binding.resultDisplay!!.text = getString(R.string.syntax_error)
+                        } else if (domain_error) {
+                            setErrorColor(true)
+                            binding.resultDisplay!!.text = getString(R.string.domain_error)
+                        } else if (require_real_number) {
+                            setErrorColor(true)
+                            binding.resultDisplay!!.text = getString(R.string.require_real_number)
+                        } else if (division_by_0) {
+                            setErrorColor(true)
+                            binding.resultDisplay!!.text = getString(R.string.division_by_0)
+                        } else if (is_infinity) {
+                            if (calculationResult < BigDecimal.ZERO) binding.resultDisplay!!.text =
+                                "-" + getString(
+                                    R.string.infinity
+                                )
+                            else binding.resultDisplay!!.text = getString(R.string.value_too_large)
+                            //} else if (result.isNaN()) {
+                            //    setErrorColor(true)
+                            //    binding.resultDisplay.setText(getString(R.string.math_error))
+                        } else {
+                            binding.resultDisplay!!.text = formattedResult
+                            isEqualLastAction =
+                                true // Do not clear the calculation (if you click into a number) if there is an error
+                        }
+                    }
+                }
+            } else {
+                withContext(Dispatchers.Main) { binding.resultDisplay!!.text = "" }
+            }
+        }
+    }
+
     fun addButton(view: View) {
         addSymbol(view, "+")
     }
@@ -256,6 +460,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+
     }
 
     @SuppressLint("SetTextI18n")
@@ -264,6 +470,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun init() {
+        val textSizeAdjuster = TextSizeAdjuster(this)
         binding.calcInput?.addTextChangedListener(object : TextWatcher {
             var preLen: Int = 0
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
@@ -273,15 +480,62 @@ class MainActivity : AppCompatActivity() {
             override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
                 updateResultDisplay()
                 textSizeAdjuster.adjustTextSize(
-                    binding.input,
+                    binding.calcInput!!,
                     TextSizeAdjuster.AdjustableTextType.Input
                 )
             }
 
             override fun afterTextChanged(p0: Editable?) {
-                TODO("Not yet implemented")
             }
-
         })
+    }
+
+    fun checkEmptyHistoryForNoHistoryLabel() {
+        if (historyAdapter.itemCount == 0) {
+            binding.historyRecylcleView!!.visibility = View.GONE
+            binding.noHistoryText!!.visibility = View.VISIBLE
+        } else {
+            binding.noHistoryText!!.visibility = View.GONE
+            binding.historyRecylcleView!!.visibility = View.VISIBLE
+        }
+    }
+
+    private fun setErrorColor(errorStatus: Boolean) {
+        // Only run if the color needs to be updated
+        runOnUiThread {
+            if (errorStatus != errorStatusOld) {
+                // Set error color
+                if (errorStatus) {
+                    binding.calcInput!!.setTextColor(
+                        ContextCompat.getColor(
+                            this,
+                            R.color.calculation_error_color
+                        )
+                    )
+                    binding.resultDisplay!!.setTextColor(
+                        ContextCompat.getColor(
+                            this,
+                            R.color.calculation_error_color
+                        )
+                    )
+                }
+                // Clear error color
+                else {
+                    binding.calcInput!!.setTextColor(
+                        ContextCompat.getColor(
+                            this,
+                            R.color.text_color
+                        )
+                    )
+                    binding.resultDisplay!!.setTextColor(
+                        ContextCompat.getColor(
+                            this,
+                            R.color.text_second_color
+                        )
+                    )
+                }
+                errorStatusOld = errorStatus
+            }
+        }
     }
 }
