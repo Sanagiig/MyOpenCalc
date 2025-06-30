@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.myopencalc.MyPreferences
 import com.example.myopencalc.R
 import com.example.myopencalc.TextSizeAdjuster
@@ -38,7 +39,6 @@ class MainActivity : AppCompatActivity() {
         const val TAG = "MainActivity"
     }
 
-    private lateinit var binding: ActivityMainBinding
     private lateinit var root: View
     private var popupMenu: PopupMenu? = null
 
@@ -54,6 +54,8 @@ class MainActivity : AppCompatActivity() {
         DecimalFormatSymbols.getInstance().groupingSeparator.toString()
 
     private lateinit var historyAdapter: HistoryAdapter
+    private lateinit var historyLayoutMgr: LinearLayoutManager
+    private lateinit var binding: ActivityMainBinding
 
     private var calculationResult = BigDecimal.ZERO
 
@@ -466,7 +468,34 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun updateResultDisplay() {
+        lifecycleScope.launch(Dispatchers.Default) {
+            // Reset text color
+            setErrorColor(false)
 
+            val calculation = binding.calcInput!!.text.toString()
+
+            if (calculation != "") {
+                division_by_0 = false
+                domain_error = false
+                syntax_error = false
+                is_infinity = false
+                require_real_number = false
+
+                val calculationTmp = Expression().getCleanExpression(
+                    binding.calcInput!!.text.toString(),
+                    decimalSeparatorSymbol,
+                    groupingSeparatorSymbol
+                )
+
+                calculationResult =
+                    Calculator(MyPreferences(this@MainActivity).numberPrecision!!.toInt()).evaluate(
+                        calculationTmp,
+                        isDegreeModeActivated
+                    )
+            }
+
+
+        }
     }
 
     fun init() {
@@ -488,6 +517,22 @@ class MainActivity : AppCompatActivity() {
             override fun afterTextChanged(p0: Editable?) {
             }
         })
+
+        historyLayoutMgr = LinearLayoutManager(
+            this,
+            LinearLayoutManager.VERTICAL,
+            false
+        )
+        binding.historyRecylcleView!!.layoutManager = historyLayoutMgr
+        historyAdapter = HistoryAdapter(
+            mutableListOf(),
+            { value ->
+                updateDisplay(window.decorView, value)
+            },
+            this // Assuming this is an Activity or Fragment with a Context
+        )
+        historyAdapter.updateHistoryList()
+        binding.historyRecylcleView!!.adapter = historyAdapter
     }
 
     fun checkEmptyHistoryForNoHistoryLabel() {
