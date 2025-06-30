@@ -69,6 +69,15 @@ class HistoryAdapter(
         this.history = MyPreferences(context).getHistory()
     }
 
+    fun updateHistoryElement(historyElement: History) {
+        updateHistoryList()
+        val position = this.history.indexOfFirst { it.id == historyElement.id }
+        if (position != -1) {
+            this.history[position] = historyElement
+            notifyItemChanged(position)
+        }
+    }
+
     inner class HistoryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val calculation: TextView = itemView.findViewById(R.id.history_item_calculation)
         private val result: TextView = itemView.findViewById(R.id.history_item_result)

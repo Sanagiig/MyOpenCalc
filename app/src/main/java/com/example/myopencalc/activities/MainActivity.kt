@@ -1,6 +1,7 @@
 package com.example.myopencalc.activities
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -8,6 +9,7 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.View
+import android.view.WindowManager
 import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -15,11 +17,13 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.myopencalc.MyPreferences
 import com.example.myopencalc.R
 import com.example.myopencalc.TextSizeAdjuster
+import com.example.myopencalc.Themes
 import com.example.myopencalc.calculator.parser.Expression
 import com.example.myopencalc.calculator.parser.NumberFormatter
 import com.example.myopencalc.calculator.parser.NumberingSystem
@@ -32,6 +36,9 @@ import java.text.DecimalFormatSymbols
 import com.example.myopencalc.calculator.parser.*
 import com.example.myopencalc.history.History
 import com.example.myopencalc.history.HistoryAdapter
+import com.google.gson.Gson
+import java.math.RoundingMode
+import java.util.Locale
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
@@ -43,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private var popupMenu: PopupMenu? = null
 
     private var isEqualLastAction = false
+    private var isDegreeModeActivated = true // Set degree by default
     private var errorStatusOld = false
     private var isStillTheSameCalculation_autoSaveCalculationWithoutEqualOption = false
     private var lastHistoryElementId = ""
@@ -61,8 +69,13 @@ class MainActivity : AppCompatActivity() {
 
     private var numberingSystem = NumberingSystem.INTERNATIONAL
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override  fun onCreate(savedInstanceState: Bundle?) {
+        // Themes
+        val themes = Themes(this)
+        themes.applyDayNightOverride()
+        setTheme(R.style.AppTheme_Base)
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -73,8 +86,11 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         root = binding.root
-        setContentView(root)
+
+
         init();
+
+        setContentView(root)
     }
 
     fun openAppMenu(view: View) {
@@ -489,16 +505,171 @@ class MainActivity : AppCompatActivity() {
 
                 calculationResult =
                     Calculator(MyPreferences(this@MainActivity).numberPrecision!!.toInt()).evaluate(
-                        calculationTmp,
+                        calculationTmp.toString(),
                         isDegreeModeActivated
                     )
+
+                // If result is a number and it is finite
+                if (!(division_by_0 || domain_error || syntax_error || is_infinity || require_real_number)) {
+                    // Round
+                    calculationResult = roundResult(calculationResult)
+                    var formattedResult = NumberFormatter.format(
+                        calculationResult.toString().replace(".", decimalSeparatorSymbol),
+                        decimalSeparatorSymbol,
+                        groupingSeparatorSymbol,
+                        numberingSystem
+                    )
+
+                    // Remove zeros at the end of the results (after point)
+                    if (!MyPreferences(this@MainActivity).numberIntoScientificNotation || !(calculationResult >= BigDecimal(
+                            9999
+                        ) || calculationResult <= BigDecimal(0.1))
+                    ) {
+                        val resultSplited = calculationResult.toString().split('.')
+                        if (resultSplited.size > 1) {
+                            val resultPartAfterDecimalSeparator = resultSplited[1].trimEnd('0')
+                            var resultWithoutZeros = resultSplited[0]
+                            if (resultPartAfterDecimalSeparator != "") {
+                                resultWithoutZeros =
+                                    resultSplited[0] + "." + resultPartAfterDecimalSeparator
+                            }
+                            formattedResult = NumberFormatter.format(
+                                resultWithoutZeros.replace(
+                                    ".",
+                                    decimalSeparatorSymbol
+                                ), decimalSeparatorSymbol,
+                                groupingSeparatorSymbol,
+                                numberingSystem
+                            )
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        if (formattedResult != calculation) {
+                            binding.resultDisplay!!.text = formattedResult
+                        } else {
+                            binding.resultDisplay!!.text = ""
+                        }
+                    }
+
+                    // Save to history if the option autoSaveCalculationWithoutEqualButton is enabled
+                    if (MyPreferences(this@MainActivity).autoSaveCalculationWithoutEqualButton) {
+                        if (calculation != formattedResult) {
+                            val history = MyPreferences(this@MainActivity).getHistory()
+
+                            if (isStillTheSameCalculation_autoSaveCalculationWithoutEqualOption) {
+                                // If it's the same calculation as the previous one
+                                // Get previous calculation and update it
+                                val previousHistoryElement =
+                                    MyPreferences(this@MainActivity).getHistoryElementById(
+                                        lastHistoryElementId
+                                    )
+                                if (previousHistoryElement != null) {
+                                    previousHistoryElement.calculation = calculation
+                                    previousHistoryElement.result = formattedResult
+                                    previousHistoryElement.time =
+                                        System.currentTimeMillis().toString()
+                                    MyPreferences(this@MainActivity).updateHistoryElementById(
+                                        lastHistoryElementId,
+                                        previousHistoryElement
+                                    )
+                                    withContext(Dispatchers.Main) {
+                                        historyAdapter.updateHistoryElement(previousHistoryElement)
+                                    }
+                                }
+                            } else {
+                                // if it's a new calculation
+
+                                // Store time
+                                val currentTime = System.currentTimeMillis().toString()
+
+                                // Save to history
+                                val historyElementId = UUID.randomUUID().toString()
+                                history.add(
+                                    History(
+                                        calculation = calculation,
+                                        result = formattedResult,
+                                        time = currentTime,
+                                        id = historyElementId
+                                    )
+                                )
+
+                                lastHistoryElementId = historyElementId
+                                isStillTheSameCalculation_autoSaveCalculationWithoutEqualOption =
+                                    true
+
+                                MyPreferences(this@MainActivity).saveHistory(history)
+
+                                // Update history variables in the UI
+                                withContext(Dispatchers.Main) {
+                                    historyAdapter.appendOneHistoryElement(
+                                        History(
+                                            calculation = calculation,
+                                            result = formattedResult,
+                                            time = currentTime,
+                                            id = UUID.randomUUID()
+                                                .toString() // Generate a random id
+                                        )
+                                    )
+
+                                    // Remove former results if > historySize preference
+                                    val historySize =
+                                        MyPreferences(this@MainActivity).historySize!!.toInt()
+                                    while (historySize != -1 && historyAdapter.itemCount >= historySize && historyAdapter.itemCount > 0) {
+                                        historyAdapter.removeFirstHistoryElement()
+                                    }
+                                    checkEmptyHistoryForNoHistoryLabel()
+
+                                    // Scroll to the bottom of the recycle view
+                                    binding.historyRecylcleView!!.scrollToPosition(historyAdapter.itemCount - 1)
+                                }
+                            }
+                        }
+                    }
+
+                } else withContext(Dispatchers.Main) {
+                    if (is_infinity && !division_by_0 && !domain_error && !require_real_number) {
+                        if (calculationResult < BigDecimal.ZERO) binding.resultDisplay!!.text =
+                            "-" + getString(
+                                R.string.infinity
+                            )
+                        else binding.resultDisplay!!.text = getString(R.string.value_too_large)
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            binding.resultDisplay!!.text = ""
+                        }
+                    }
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    binding.resultDisplay!!.text = ""
+                }
             }
-
-
         }
     }
 
-    fun init() {
+     fun init() {
+        // Enable the possibility to show the activity on the lock screen
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+        )
+
+
+
+//        lifecycleScope.launch (Dispatchers.Main){
+//            Thread.sleep(2000)
+////            window.setStatusBarColor(ContextCompat.getColor(this@MainActivity, R.color.calculation_error_color))
+//            window.apply {
+//                addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+//                // 替换为你想使用的颜色资源
+//                statusBarColor = ContextCompat.getColor(this@MainActivity, R.color.calculation_error_color)
+//            }
+//            window.navigationBarColor = ContextCompat.getColor(this@MainActivity, R.color.calculation_error_color)
+//        }
+
         val textSizeAdjuster = TextSizeAdjuster(this)
         binding.calcInput?.addTextChangedListener(object : TextWatcher {
             var preLen: Int = 0
@@ -582,5 +753,29 @@ class MainActivity : AppCompatActivity() {
                 errorStatusOld = errorStatus
             }
         }
+    }
+
+    private fun roundResult(result: BigDecimal): BigDecimal {
+        val numberPrecision = MyPreferences(this).numberPrecision!!.toInt()
+        var newResult = result.setScale(numberPrecision, RoundingMode.HALF_EVEN)
+        if (MyPreferences(this).numberIntoScientificNotation && (newResult >= BigDecimal(9999) || newResult <= BigDecimal(
+                0.1
+            ))
+        ) {
+            val scientificString = String.format(Locale.US, "%.4g", result)
+            newResult = BigDecimal(scientificString)
+        }
+
+        // Fix how is displayed 0 with BigDecimal
+        val tempResult = newResult.toString().replace("E-", "").replace("E", "")
+        val allCharsEqualToZero = tempResult.all { it == '0' }
+        if (
+            allCharsEqualToZero
+            || newResult.toString().startsWith("0E")
+        ) {
+            return BigDecimal.ZERO
+        }
+
+        return newResult
     }
 }

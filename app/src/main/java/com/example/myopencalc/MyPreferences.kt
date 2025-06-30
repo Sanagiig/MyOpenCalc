@@ -85,12 +85,26 @@ class MyPreferences(context: Context) {
         }
     }
 
-    fun saveHistory(history: MutableList<History>) {
+    fun updateHistoryElementById(id: String, history: History) {
+        val historyList = getHistory()
+        val index = historyList.indexOfFirst { it.id == id }
+        if (index != -1) {
+            historyList[index] = history
+            saveHistory(historyList)
+        }
+    }
+
+    fun saveHistory(history: List<History>){
         val gson = Gson()
         val history2 = history.toMutableList()
         while (historySize!!.toInt() > 0 && history2.size > historySize!!.toInt()) {
             history2.removeAt(0)
         }
         MyPreferences(ctx).history = gson.toJson(history2) // Convert to json
+    }
+
+    fun getHistoryElementById(id: String): History? {
+        val history = getHistory()
+        return history.find { it.id == id }
     }
 }
