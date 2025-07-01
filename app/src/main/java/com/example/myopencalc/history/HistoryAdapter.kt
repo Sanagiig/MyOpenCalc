@@ -78,6 +78,26 @@ class HistoryAdapter(
         }
     }
 
+    fun removeHistoryElement(position: Int) {
+        // No idea why, but time.isNotEmpty() is not working, only time.isNullOrEmpty() works
+        val historyElement = history[position]
+        if (!historyElement.time.isNullOrEmpty()) {
+            val nextHistoryElement = history.getOrNull(position + 1)
+            nextHistoryElement?.let {
+                if (it.time.isNullOrEmpty()) {
+                    this.history[position + 1] = History(
+                        calculation = nextHistoryElement.calculation,
+                        result = nextHistoryElement.result,
+                        time = historyElement.time,
+                        id = nextHistoryElement.id
+                    )
+                }
+            }
+        }
+        this.history.removeAt(position)
+        notifyItemRemoved(position)
+    }
+
     inner class HistoryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val calculation: TextView = itemView.findViewById(R.id.history_item_calculation)
         private val result: TextView = itemView.findViewById(R.id.history_item_result)

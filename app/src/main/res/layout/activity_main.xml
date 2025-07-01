@@ -6,7 +6,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:animateLayoutChanges="true"
-    android:fitsSystemWindows="true"
     tools:context=".activities.MainActivity">
 
     <View
@@ -14,22 +13,10 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="?attr/foreground_color"
-        app:layout_constraintBottom_toTopOf="@id/inputHorizontalScrollView"
+        app:layout_constraintBottom_toTopOf="@+id/inputHorizontalScrollView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-
-    <ImageButton
-        android:id="@+id/menuButton"
-        style="@style/RobotoFontCondensedLight"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:background="@drawable/ic_baseline_more_vert_24"
-        android:onClick="openAppMenu"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_baseline_more_vert_24" />
 
     <HorizontalScrollView
         android:id="@+id/inputHorizontalScrollView"
@@ -38,28 +25,50 @@
         android:background="?attr/foreground_color"
         android:overScrollMode="never"
         android:scrollbars="none"
-        app:layout_constraintBottom_toTopOf="@id/guideline1"
-        app:layout_constraintTop_toBottomOf="@id/menuButton"
-        tools:layout_editor_absoluteX="0dp">
+        app:layout_constraintBottom_toTopOf="@+id/guideline1"
+        app:layout_constraintTop_toBottomOf="@+id/menuButton">
 
         <EditText
             android:id="@+id/calc_input"
             style="@style/RobotoFontCondensedMedium"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:layout_gravity="right"
             android:autofillHints="false"
-            android:background="@color/foreground_color"
+            android:background="?attr/foreground_color"
             android:inputType="textNoSuggestions"
-            android:maxLength="100000"
+            android:maxLength="10000"
             android:paddingHorizontal="10dp"
             android:singleLine="true"
             android:text=""
+            android:textAlignment="textEnd"
             android:textColor="?attr/text_color"
             android:textSize="55sp"
-            tools:ignore="RtlCompat"
-            tools:layout_gravity="right"
-            tools:textAlignment="textEnd" />
+            tools:ignore="RtlCompat" />
+
     </HorizontalScrollView>
+
+    <!-- <EditText
+        android:id="@+id/resultDisplay"
+        style="@style/RobotoFontCondensedMedium"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:scrollHorizontally="true"
+        android:clickable="false"
+        android:cursorVisible="false"
+        android:focusable="false"
+        android:singleLine="true"
+        android:background="?attr/foreground_color"
+        android:inputType="textNoSuggestions"
+        android:text=""
+        android:textColor="?attr/text_second_color"
+        android:layout_weight="1"
+        android:textAlignment="textEnd"
+        android:textSize="35sp"
+        android:paddingHorizontal="10dp"
+        android:paddingBottom="4dp"
+        app:layout_constraintBottom_toTopOf="@+id/guideline2"
+        app:layout_constraintTop_toTopOf="@+id/guideline1" /> -->
 
     <HorizontalScrollView
         android:id="@+id/resultDisplayHorizontalScrollView"
@@ -68,9 +77,9 @@
         android:background="?attr/foreground_color"
         android:fillViewport="true"
         android:overScrollMode="never"
-        app:layout_constraintBottom_toTopOf="@id/guideline2"
-        app:layout_constraintTop_toBottomOf="@id/guideline1"
-        tools:scrollbars="none">
+        android:scrollbars="none"
+        app:layout_constraintBottom_toTopOf="@+id/guideline2"
+        app:layout_constraintTop_toTopOf="@+id/guideline1">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -80,7 +89,7 @@
 
             <TextView
                 android:id="@+id/resultDisplay"
-                style="@style/RobotoFontCondensedLight"
+                style="@style/RobotoFontCondensedMedium"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:background="?attr/foreground_color"
@@ -90,27 +99,13 @@
                 android:singleLine="true"
                 android:text=""
                 android:textAlignment="textEnd"
-                android:textColor="@color/text_second_color"
+                android:textColor="?attr/text_second_color"
                 android:textIsSelectable="true"
                 android:textSize="35sp" />
+
         </LinearLayout>
+
     </HorizontalScrollView>
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintGuide_percent="0.18"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.26" />
 
     <com.sothree.slidinguppanel.SlidingUpPanelLayout
         android:id="@+id/sliding_layout"
@@ -123,6 +118,7 @@
         app:umanoScrollableView="@id/history_recylcle_view"
         app:umanoShadowHeight="0dp"
         tools:ignore="MissingConstraints">
+
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/constraintLayout2"
@@ -148,12 +144,12 @@
 
                     <Button
                         android:id="@+id/squareButton"
+                        android:contentDescription="@string/squareDesc"
                         style="@style/CalculatorButton.Function"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/squareDesc"
                         android:onClick="squareButton"
                         android:text="@string/square"
                         android:textSize="26sp" />
@@ -161,11 +157,11 @@
                     <Button
                         android:id="@+id/piButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/piDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/piDesc"
                         android:onClick="piButton"
                         android:text="@string/pi"
                         android:textSize="26sp" />
@@ -173,22 +169,22 @@
                     <ImageButton
                         android:id="@+id/exponentButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/exponentDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/exponentDesc"
                         android:onClick="exponentButton"
                         app:srcCompat="@drawable/exponent" />
 
                     <Button
                         android:id="@+id/factorialButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/factorialDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/factorialDesc"
                         android:onClick="factorialButton"
                         android:text="@string/factorial"
                         android:textSize="26sp" />
@@ -196,18 +192,19 @@
                     <ImageButton
                         android:id="@+id/scientistModeSwitchButton"
                         style="@style/Widget.AppCompat.Button.Borderless"
+                        android:contentDescription="@string/scientificModeSwitchDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="0.6"
                         android:background="@drawable/circle"
                         android:backgroundTint="?attr/foreground_color"
-                        android:contentDescription="@string/scientificModeSwitchDesc"
                         android:onClick="scientistModeSwitchButton"
                         android:textAllCaps="false"
                         android:textColor="?attr/text_color"
                         android:textSize="26sp"
                         app:srcCompat="@drawable/ic_baseline_keyboard_arrow_down_24" />
+
                 </TableRow>
 
                 <TableRow
@@ -221,11 +218,11 @@
                     <Button
                         android:id="@+id/degreeButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/degreeDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/degreeDesc"
                         android:onClick="degreeButton"
                         android:text="@string/degree"
                         android:textSize="22sp" />
@@ -233,33 +230,33 @@
                     <Button
                         android:id="@+id/sineButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/sineDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/sineDesc"
                         android:onClick="sineButton"
                         android:text="@string/sine" />
 
                     <Button
                         android:id="@+id/cosineButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/cosineDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/cosineDesc"
                         android:onClick="cosineButton"
                         android:text="@string/cosine" />
 
                     <Button
                         android:id="@+id/tangentButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/tangentDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/tangentDesc"
                         android:onClick="tangentButton"
                         android:text="@string/tangent" />
 
@@ -283,33 +280,33 @@
                     <Button
                         android:id="@+id/invButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/invertDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/invertDesc"
                         android:onClick="invButton"
                         android:text="@string/invert" />
 
                     <Button
                         android:id="@+id/eButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/eDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/eDesc"
                         android:onClick="eButton"
                         android:text="@string/e" />
 
                     <Button
                         android:id="@+id/naturalLogarithmButton"
                         style="@style/CalculatorButton.Function"
+                        android:contentDescription="@string/naturalLogarithmDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_margin="0dp"
                         android:layout_weight="1"
-                        android:contentDescription="@string/naturalLogarithmDesc"
                         android:onClick="naturalLogarithmButton"
                         android:text="@string/naturalLogarithm" />
 
@@ -352,11 +349,11 @@
                     <Button
                         android:id="@+id/clearButton"
                         style="@style/CalculatorButton"
+                        android:contentDescription="@string/clearDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:backgroundTint="?attr/button_clear_color"
-                        android:contentDescription="@string/clearDesc"
                         android:onClick="clearButton"
                         android:text="@string/clear"
                         android:textSize="28sp" />
@@ -388,11 +385,11 @@
                     <Button
                         android:id="@+id/parenthesesButton"
                         style="@style/CalculatorButton"
+                        android:contentDescription="@string/parenthesesDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:backgroundTint="?attr/button_symbol_color"
-                        android:contentDescription="@string/parenthesesDesc"
                         android:onClick="parenthesesButton"
                         android:text="@string/parentheses"
                         android:textSize="28sp" />
@@ -400,11 +397,11 @@
                     <Button
                         android:id="@+id/divideBy100Button"
                         style="@style/CalculatorButton"
+                        android:contentDescription="@string/percentDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:backgroundTint="?attr/button_symbol_color"
-                        android:contentDescription="@string/percentDesc"
                         android:onClick="percent"
                         android:text="@string/percent"
                         android:textSize="28sp" />
@@ -580,19 +577,19 @@
                     <ImageButton
                         android:id="@+id/pointButton"
                         style="@style/CalculatorButton"
+                        android:contentDescription="@string/pointDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:contentDescription="@string/pointDesc"
                         android:onClick="pointButton" />
 
                     <ImageButton
                         android:id="@+id/backspaceButton"
                         style="@style/CalculatorButton"
+                        android:contentDescription="@string/backspaceDesc"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:contentDescription="@string/backspaceDesc"
                         android:onClick="backspaceButton"
                         android:paddingEnd="5dp"
                         app:srcCompat="@drawable/backspace" />
@@ -609,6 +606,8 @@
                         android:textSize="32sp" />
                 </TableRow>
             </TableLayout>
+
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -618,6 +617,7 @@
             android:background="@drawable/display_background"
             tools:context=".activities.MainActivity">
 
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/history_recylcle_view"
                 android:layout_width="match_parent"
@@ -626,26 +626,24 @@
                 android:background="?attr/history_background_color"
                 app:layout_constraintBottom_toTopOf="@+id/sliding_layout_button"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="1.0"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.0" />
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
                 android:id="@+id/no_history_text"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
+                android:text="@string/no_history_available"
+                android:textSize="18sp"
+                android:textColor="?attr/text_color"
+                android:visibility="gone"
+                android:gravity="center"
                 android:layout_marginBottom="32dp"
                 android:background="?attr/history_background_color"
-                android:gravity="center"
-                android:text="@string/no_history_available"
-                android:textColor="?attr/text_color"
-                android:textSize="18sp"
-                android:visibility="gone"
                 app:layout_constraintBottom_toTopOf="@+id/sliding_layout_button"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"/>
 
             <View
                 android:id="@+id/history_sliding_layout_button"
@@ -654,7 +652,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/history_recylcle_view" />
+                app:layout_constraintTop_toBottomOf="@+id/history_recylcle_view"/>
 
             <View
                 android:id="@+id/sliding_layout_button"
@@ -668,8 +666,57 @@
                 app:layout_constraintStart_toStartOf="parent"
                 tools:ignore="MissingConstraints" />
 
-
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+
     </com.sothree.slidinguppanel.SlidingUpPanelLayout>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.18" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.26" />
+
+    <!--<View
+        android:id="@+id/separator"
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:background="?attr/separator_color"
+        app:layout_constraintTop_toTopOf="@+id/sliding_layout"
+        tools:ignore="MissingConstraints" />-->
+
+    <ImageButton
+        android:id="@+id/menuButton"
+        style="@style/RobotoFontCondensedLight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:background="@drawable/ic_baseline_more_vert_24"
+        android:onClick="openAppMenu"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_baseline_more_vert_24" />
+
+    <TextView
+        android:id="@+id/degreeTextView"
+        style="@style/RobotoFontCondensedMedium"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="8dp"
+        android:text=""
+        android:textColor="?attr/text_third_color"
+        android:textSize="25sp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

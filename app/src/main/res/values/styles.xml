@@ -10,6 +10,7 @@
 
     <!-- Base application theme. Colors are overridden depending on dark/light -->
     <style name="AppTheme.Base" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowActionBarOverlay">true</item>
 
         <item name="android:statusBarColor">@color/foreground_color</item>
